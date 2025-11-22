@@ -1,0 +1,37 @@
+# Byte-compiled / cache files
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+
+# Environment / tooling
+.venv/
+.env
+.python-version
+.idea/
+.vscode/
+
+# Build and distribution artifacts
+build/
+dist/
+*.egg-info/
+*.egg
+*.spec
+
+# Coverage and test reports
+.coverage
+coverage.xml
+htmlcov/
+
+# OS / editor cruft
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Local data
+logs/
+
+# Local third-party binaries (kept out of git history)
+third_party/mpv/libmpv-2.dll
