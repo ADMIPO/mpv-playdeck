@@ -1,4 +1,4 @@
-"""Basic main window that wires mpv into a Qt video surface."""
+"""将 mpv 输出绑定到 Qt 视频区域的基础主窗口。"""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ from ...core.mpv.player import MpvPlayer
 
 
 class MainWindow(QMainWindow):
-    """Minimal playable window with an mpv-backed video surface."""
+    """拥有 mpv 渲染表面的最简播放窗口。"""
 
     def __init__(self, player: MpvPlayer, initial_file: Optional[Path] = None) -> None:
         super().__init__()

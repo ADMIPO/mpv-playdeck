@@ -1,8 +1,7 @@
-"""Helpers for resolving important filesystem locations.
+"""用于解析关键文件系统路径的辅助方法。
 
-This module avoids any Qt imports and is intended to be reused by both core
-and UI layers. The paths are computed relative to the installed package
-location, making it robust to running from source or an installed wheel.
+本模块不依赖任何 Qt 导入，旨在在 core 与 UI 层之间复用。所有路径都以已安装的包位置为
+基准进行计算，因此无论从源码运行还是安装后的 wheel，都能保持稳健。
 """
 
 from __future__ import annotations
@@ -17,23 +16,22 @@ MPV_DIR = THIRD_PARTY_DIR / "mpv"
 
 
 def project_root() -> Path:
-    """Return the absolute path to the repository root directory."""
+    """返回仓库根目录的绝对路径。"""
 
     return PROJECT_ROOT
 
 
 def third_party_dir() -> Path:
-    """Return the absolute path to the ``third_party`` directory."""
+    """返回 ``third_party`` 目录的绝对路径。"""
 
     return THIRD_PARTY_DIR
 
 
 def mpv_binary_dir() -> Path:
-    """Return the directory expected to contain ``libmpv-2.dll``.
+    """返回预期存放 ``libmpv-2.dll`` 的目录。
 
-    On Windows, this directory must be added to the DLL search path before
-    importing the :mod:`mpv` bindings. The caller is responsible for ensuring
-    the DLL actually exists inside this directory.
+    在 Windows 上需要在导入 :mod:`mpv` 绑定前，将该目录加入 DLL 搜索路径。调用方需要
+    确保 DLL 确实存在于此目录中。
     """
 
     return MPV_DIR

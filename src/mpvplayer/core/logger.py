@@ -1,4 +1,4 @@
-"""Simple logging configuration used across the project."""
+"""项目通用的简易日志配置。"""
 
 from __future__ import annotations
 
@@ -7,12 +7,12 @@ from typing import Optional
 
 
 def setup_logging(level: int = logging.INFO) -> None:
-    """Configure the root logger for the application.
+    """配置应用的根日志记录器。
 
     Parameters
     ----------
     level:
-        Logging level to configure for the root logger. Defaults to ``logging.INFO``.
+        根记录器的日志等级，默认使用 ``logging.INFO``。
     """
 
     logging.basicConfig(
@@ -22,12 +22,12 @@ def setup_logging(level: int = logging.INFO) -> None:
 
 
 def get_logger(name: Optional[str] = None) -> logging.Logger:
-    """Return a configured logger instance.
+    """返回一个已配置的日志记录器实例。
 
     Parameters
     ----------
     name:
-        Optional logger name. Defaults to the root logger when ``None``.
+        可选的记录器名称。为 ``None`` 时返回根记录器。
     """
 
     return logging.getLogger(name)

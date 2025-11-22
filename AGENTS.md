@@ -252,19 +252,19 @@ def open_file(self, path: str) -> None:
 
 * 公共 API（核心类、主要方法）必须写 docstring。
 * 风格推荐类似 Google 或 numpydoc 之一，统一即可。
+* docstring 与行内注释请统一使用中文描述，如需保留英文术语可在括号中标注。
 
 示例：
 
 ```python
 class MpvPlayer:
-    """High-level wrapper around libmpv.
+    """libmpv 的高层封装。
 
-    Responsible for loading files, controlling playback, and querying
-    playback state. Does not depend on any Qt classes.
+    负责加载文件、控制播放并查询播放状态。不依赖任何 Qt 类。
     """
 
     def open_file(self, path: str) -> None:
-        """Open and start playing a given media file."""
+        """打开并开始播放指定的媒体文件。"""
         ...
 ```
 

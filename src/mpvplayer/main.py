@@ -1,4 +1,4 @@
-"""Entry point for ``python -m mpvplayer``."""
+"""``python -m mpvplayer`` 的入口模块。"""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from . import app
 
 
 def main() -> None:
-    """Module entry point used by ``python -m``."""
+    """供 ``python -m`` 调用的模块入口。"""
 
     exit_code = app.run()
     sys.exit(exit_code)
