@@ -10,7 +10,7 @@ import logging
 from importlib import import_module
 from pathlib import Path
 from types import ModuleType
-from typing import Optional
+from typing import Callable, Optional
 
 from ..logger import get_logger
 
@@ -32,6 +32,7 @@ class MpvClient:
         self._logger = log or get_logger(__name__)
         self._mpv_module: Optional[ModuleType] = None
         self._mpv_instance = None
+        self._event_callbacks: list[Callable[[object], None]] = []
         self._create_instance()
 
     def _load_binding(self) -> ModuleType:
@@ -64,6 +65,32 @@ class MpvClient:
             self._mpv_instance.terminate()
             self._mpv_instance = None
 
+    def command(self, name: str, *args: object) -> object:
+        """执行 mpv 的任意指令。
+
+        Parameters
+        ----------
+        name:
+            指令名称，例如 ``"loadfile"``、``"seek"``。
+        *args:
+            可变参数列表，对应 mpv 指令的参数顺序。
+        """
+
+        instance = self._require_instance()
+        return instance.command(name, *args)
+
+    def set_property(self, name: str, value: object) -> None:
+        """设置 mpv 属性。"""
+
+        instance = self._require_instance()
+        instance.set_property(name, value)
+
+    def get_property(self, name: str) -> object:
+        """读取 mpv 属性。"""
+
+        instance = self._require_instance()
+        return instance.get_property(name)
+
     def set_wid(self, window_id: int) -> None:
         """将 mpv 的视频输出绑定到原生窗口句柄。"""
 
@@ -93,3 +120,46 @@ class MpvClient:
         if not self._mpv_instance:
             raise MpvClientError("mpv is not initialized")
         self._mpv_instance.pause = not self._mpv_instance.pause
+
+    def observe_property(self, name: str, callback: Callable[[str, object], None]) -> None:
+        """注册 mpv 属性观察回调。"""
+
+        instance = self._require_instance()
+        instance.observe_property(name, callback)
+
+    def unobserve_property(self, name: str, callback: Callable[[str, object], None]) -> None:
+        """取消 mpv 属性观察回调。"""
+
+        instance = self._require_instance()
+        instance.unobserve_property(name, callback)
+
+    def add_event_callback(self, callback: Callable[[object], None]) -> None:
+        """添加事件回调，在 :meth:`poll_event` 收到事件时触发。"""
+
+        self._event_callbacks.append(callback)
+
+    def remove_event_callback(self, callback: Callable[[object], None]) -> None:
+        """移除事件回调。"""
+
+        try:
+            self._event_callbacks.remove(callback)
+        except ValueError:
+            self._logger.debug("callback not registered, ignore removal")
+
+    def poll_event(self, timeout: float = 0.1) -> Optional[object]:
+        """轮询 mpv 事件并触发已注册的回调。"""
+
+        instance = self._require_instance()
+        event = instance.wait_for_event(timeout)
+        if event:
+            for callback in list(self._event_callbacks):
+                try:
+                    callback(event)
+                except Exception:  # pragma: no cover - 调试辅助
+                    self._logger.exception("Unhandled exception in mpv event callback")
+        return event
+
+    def _require_instance(self):
+        if not self._mpv_instance:
+            raise MpvClientError("mpv is not initialized")
+        return self._mpv_instance
