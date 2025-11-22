@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -64,7 +63,7 @@ class MainWindow(QMainWindow):
 
     def _attach_player(self) -> None:
         wid = int(self._video_surface.winId())
-        self._player.set_video_widget(wid)
+        self._player.set_render_target(wid)
         self._player_attached = True
 
     def on_open_clicked(self) -> None:
