@@ -29,6 +29,11 @@ class MpvPlayer:
 
         self._client.load_file(path)
 
+    def play(self) -> None:
+        """开始或恢复播放。"""
+
+        self._client.set_pause(False)
+
     def toggle_pause(self) -> None:
         """切换暂停状态。"""
 
@@ -43,6 +48,42 @@ class MpvPlayer:
         """恢复播放。"""
 
         self._client.set_pause(False)
+
+    def seek(self, position: float) -> None:
+        """跳转到媒体的绝对时间位置（秒）。"""
+
+        self._client.command("seek", position, "absolute")
+
+    def seek_relative(self, delta: float) -> None:
+        """在当前位置基础上快进/快退。"""
+
+        self._client.command("seek", delta, "relative")
+
+    def set_volume(self, volume: float) -> None:
+        """设置音量（0-100）。"""
+
+        self._client.set_property("volume", volume)
+
+    def set_mute(self, muted: bool) -> None:
+        """设置静音状态。"""
+
+        self._client.set_property("mute", muted)
+
+    def get_position(self) -> Optional[float]:
+        """获取当前播放时间（秒）。"""
+
+        return self._client.get_property("time-pos")
+
+    def get_duration(self) -> Optional[float]:
+        """获取媒体总时长（秒）。"""
+
+        return self._client.get_property("duration")
+
+    def is_paused(self) -> bool:
+        """返回当前是否处于暂停状态。"""
+
+        pause = self._client.get_property("pause")
+        return bool(pause)
 
     @property
     def client(self) -> MpvClient:
