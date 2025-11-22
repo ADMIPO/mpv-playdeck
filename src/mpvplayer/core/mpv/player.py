@@ -26,17 +26,18 @@ class MpvPlayer:
     ) -> None:
         self._client = client or MpvClient()
         self._state = state or PlaybackState()
+        self._is_media_ready = False
         self._poll_timer = QTimer()
         self._poll_timer.setInterval(poll_interval_ms)
         self._poll_timer.timeout.connect(self._poll_playback)
         # TODO: 后续可替换为 mpv 事件驱动的观察者，减少轮询开销。
-        self._poll_timer.start()
 
     def shutdown(self) -> None:
         """释放 mpv 资源。"""
 
         self._client.shutdown()
         self._poll_timer.stop()
+        self._is_media_ready = False
 
     def set_render_target(self, window_id: int) -> None:
         """将原生窗口句柄传递给 mpv。"""
@@ -59,6 +60,9 @@ class MpvPlayer:
         self._state.set_is_playing(True)
         duration = self._client.get_property("duration")
         self._state.set_duration(float(duration) if duration is not None else None)
+        self._is_media_ready = True
+        if not self._poll_timer.isActive():
+            self._poll_timer.start()
 
     def play(self) -> None:
         """开始或恢复播放。"""
@@ -145,6 +149,10 @@ class MpvPlayer:
         以减少无效查询。
         """
 
+        # mpv 尚未完成文件加载时，相关属性可能不存在，提前短路避免无意义的查询。
+        if not self._is_media_ready:
+            return
+
         try:
             position = self._client.get_property("time-pos")
             if position is not None:
@@ -174,8 +182,8 @@ class MpvPlayer:
 
             # 播放中意味着未暂停且未到结尾。
             self._state.set_is_playing(not paused and not eof_reached)
-        except MpvClientError:
-            # mpv 尚未初始化或已关闭时可能出现异常，忽略即可等待下一次轮询。
+        except (MpvClientError, AttributeError):
+            # mpv 尚未初始化、已关闭或属性尚未可用时可能出现异常，忽略即可等待下一次轮询。
             return
 
 
