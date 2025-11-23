@@ -9,6 +9,8 @@ from typing import Any
 
 import pytest
 
+pytest.importorskip("PySide6")
+
 sys.path.append(str(Path(__file__).resolve().parents[2] / "src"))
 
 from mpvplayer.core.mpv.client import MpvClient
@@ -138,4 +140,37 @@ def test_player_high_level_controls(tmp_path: Path) -> None:
     assert ("seek", "-3", "relative") in mpv_instance.commands
     assert mpv_instance.properties["volume"] == 30
     assert mpv_instance.properties["mute"] is True
+
+
+def test_player_tolerates_unready_properties(monkeypatch, tmp_path: Path) -> None:
+    """回归：mpv 属性尚未可用时 ``open_file`` 不应抛出异常。"""
+
+    media = tmp_path / "video.mkv"
+    media.write_text("stub")
+
+    player = MpvPlayer()
+    mpv_instance: DummyMPV = player.client._mpv_instance  # type: ignore[assignment]
+
+    def flaky_get_property(name: str):
+        if name == "duration":
+            # 首次访问 duration 时模拟 mpv 尚未准备好返回属性。
+            raise AttributeError("duration not ready")
+        if name == "pause":
+            return False
+        if name == "eof-reached":
+            return False
+        return None
+
+    monkeypatch.setattr(mpv_instance, "get_property", flaky_get_property)
+
+    player.open_file(media)
+    assert player.get_state().duration is None
+
+    # 后续轮询应能在属性可用时成功填充。
+    monkeypatch.setattr(
+        mpv_instance, "get_property", lambda name: 42.0 if name == "duration" else None
+    )
+    player._poll_playback()
+
+    assert player.get_state().duration == 42.0
 

@@ -52,14 +52,20 @@ class MpvPlayer:
     def open_file(self, path: Path) -> None:
         """打开并播放本地媒体文件。"""
 
+        self._is_media_ready = False
         self._client.load_file(path)
         self._state.set_file_path(str(path))
         self._state.set_position(0.0)
         self._state.set_eof(False)
         self._state.set_is_paused(False)
         self._state.set_is_playing(True)
-        duration = self._client.get_property("duration")
-        self._state.set_duration(float(duration) if duration is not None else None)
+        self._state.set_duration(None)
+        try:
+            duration = self._client.get_property("duration")
+        except (MpvClientError, AttributeError):
+            duration = None
+        if duration is not None:
+            self._state.set_duration(float(duration))
         self._is_media_ready = True
         if not self._poll_timer.isActive():
             self._poll_timer.start()
