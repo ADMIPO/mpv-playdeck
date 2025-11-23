@@ -36,8 +36,6 @@ class MainWindow(QMainWindow):
         self._video_surface.setStyleSheet("background-color: #000;")
         self._video_surface.setMinimumSize(640, 360)
 
-        self._status_label = QLabel("拖放文件或通过“文件”菜单打开开始播放。", self)
-
         self._play_pause_button = QPushButton("播放", self)
         self._play_pause_button.clicked.connect(self.on_play_pause_clicked)
 
@@ -56,7 +54,6 @@ class MainWindow(QMainWindow):
 
         layout = QVBoxLayout()
         layout.addWidget(self._video_surface, stretch=1)
-        layout.addWidget(self._status_label)
         layout.addLayout(controls_layout)
 
         container = QWidget(self)
@@ -67,6 +64,9 @@ class MainWindow(QMainWindow):
         open_action = QAction("打开文件…", self)
         open_action.triggered.connect(self.on_open_clicked)
         file_menu.addAction(open_action)
+        exit_action = QAction("退出...", self)
+        exit_action.triggered.connect(self.on_exit_triggered)
+        file_menu.addAction(exit_action)
 
         self.setWindowTitle("mpv player")
         self.resize(800, 600)
@@ -89,9 +89,10 @@ class MainWindow(QMainWindow):
         self._player_attached = True
 
     def on_open_clicked(self) -> None:
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "打开媒体文件", "", "媒体文件 (*.mp4 *.mkv *.mp3 *.flac *.*)"
+        media_filter = (
+            "音视频文件 (*.mp4 *.mkv *.mov *.avi *.mp3 *.flac *.wav *.ogg *.m4a)"
         )
+        file_path, _ = QFileDialog.getOpenFileName(self, "选择媒体文件", "", media_filter)
         if file_path:
             self._open_media(Path(file_path))
 
@@ -102,6 +103,9 @@ class MainWindow(QMainWindow):
     def on_volume_changed(self, value: int) -> None:
         self._player.set_volume(value)
 
+    def on_exit_triggered(self) -> None:
+        self.close()
+
     def _open_media(self, path: Path) -> None:
         if not path.exists():
             QMessageBox.warning(self, "无法打开文件", f"文件不存在：{path}")
@@ -109,7 +113,6 @@ class MainWindow(QMainWindow):
         if not self._player_attached:
             self._attach_player()
         self._player.open_file(path)
-        self._status_label.setText(f"正在播放：{path.name}")
         self._update_play_pause_text()
 
     def _update_play_pause_text(self) -> None:
