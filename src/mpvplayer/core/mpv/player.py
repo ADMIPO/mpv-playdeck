@@ -60,10 +60,7 @@ class MpvPlayer:
         self._state.set_is_paused(False)
         self._state.set_is_playing(True)
         self._state.set_duration(None)
-        try:
-            duration = self._client.get_property("duration")
-        except (MpvClientError, AttributeError):
-            duration = None
+        duration = self._client.get_property("duration")
         if duration is not None:
             self._state.set_duration(float(duration))
         self._is_media_ready = True
@@ -168,8 +165,12 @@ class MpvPlayer:
             if duration is not None:
                 self._state.set_duration(float(duration))
 
-            paused = bool(self._client.get_property("pause"))
-            self._state.set_is_paused(paused)
+            pause_value = self._client.get_property("pause")
+            if pause_value is not None:
+                paused = bool(pause_value)
+                self._state.set_is_paused(paused)
+            else:
+                paused = self._state.is_paused
 
             volume = self._client.get_property("volume")
             if volume is not None:
@@ -183,12 +184,16 @@ class MpvPlayer:
             if speed is not None:
                 self._state.set_speed(float(speed))
 
-            eof_reached = bool(self._client.get_property("eof-reached"))
-            self._state.set_eof(eof_reached)
+            eof_value = self._client.get_property("eof-reached")
+            if eof_value is not None:
+                eof_reached = bool(eof_value)
+                self._state.set_eof(eof_reached)
+            else:
+                eof_reached = self._state.eof
 
             # 播放中意味着未暂停且未到结尾。
             self._state.set_is_playing(not paused and not eof_reached)
-        except (MpvClientError, AttributeError):
+        except MpvClientError:
             # mpv 尚未初始化、已关闭或属性尚未可用时可能出现异常，忽略即可等待下一次轮询。
             return
 
