@@ -83,13 +83,21 @@ class MpvClient:
         """设置 mpv 属性。"""
 
         instance = self._require_instance()
-        instance.set_property(name, value)
+        attribute_name = name.replace("-", "_")
+        try:
+            instance.command("set", name, value)
+        except AttributeError:
+            setattr(instance, attribute_name, value)
 
     def get_property(self, name: str) -> object:
         """读取 mpv 属性。"""
 
         instance = self._require_instance()
-        return instance.get_property(name)
+        attribute_name = name.replace("-", "_")
+        try:
+            return instance.command("get_property", name)
+        except AttributeError:
+            return getattr(instance, attribute_name)
 
     def set_wid(self, window_id: int) -> None:
         """将 mpv 的视频输出绑定到原生窗口句柄。"""
