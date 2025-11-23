@@ -6,13 +6,15 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtGui import QAction, QCloseEvent
 from PySide6.QtWidgets import (
     QFileDialog,
+    QHBoxLayout,
     QLabel,
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QSlider,
     QVBoxLayout,
     QWidget,
 )
@@ -28,25 +30,45 @@ class MainWindow(QMainWindow):
         self._player = player
         self._initial_file = initial_file
         self._player_attached = False
+        self._default_volume = 50
 
         self._video_surface = QWidget(self)
         self._video_surface.setStyleSheet("background-color: #000;")
         self._video_surface.setMinimumSize(640, 360)
 
-        self._status_label = QLabel("Drop a file or use Open to start playing.", self)
-        self._open_button = QPushButton("Open File…", self)
-        self._open_button.clicked.connect(self.on_open_clicked)
+        self._status_label = QLabel("拖放文件或通过“文件”菜单打开开始播放。", self)
+
+        self._play_pause_button = QPushButton("播放", self)
+        self._play_pause_button.clicked.connect(self.on_play_pause_clicked)
+
+        self._volume_label = QLabel("音量", self)
+        self._volume_slider = QSlider(Qt.Horizontal, self)
+        self._volume_slider.setRange(0, 100)
+        self._volume_slider.setValue(self._default_volume)
+        self._volume_slider.valueChanged.connect(self.on_volume_changed)
+        self._player.set_volume(self._default_volume)
+
+        controls_layout = QHBoxLayout()
+        controls_layout.addWidget(self._play_pause_button)
+        controls_layout.addStretch()
+        controls_layout.addWidget(self._volume_label)
+        controls_layout.addWidget(self._volume_slider)
 
         layout = QVBoxLayout()
         layout.addWidget(self._video_surface, stretch=1)
         layout.addWidget(self._status_label)
-        layout.addWidget(self._open_button, alignment=Qt.AlignRight)
+        layout.addLayout(controls_layout)
 
         container = QWidget(self)
         container.setLayout(layout)
         self.setCentralWidget(container)
 
-        self.setWindowTitle("mpv-playdeck (minimal)")
+        file_menu = self.menuBar().addMenu("文件(&F)")
+        open_action = QAction("打开文件…", self)
+        open_action.triggered.connect(self.on_open_clicked)
+        file_menu.addAction(open_action)
+
+        self.setWindowTitle("mpv player")
         self.resize(800, 600)
 
     def showEvent(self, event) -> None:  # type: ignore[override]
@@ -68,16 +90,30 @@ class MainWindow(QMainWindow):
 
     def on_open_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Open media file", "", "Media files (*.mp4 *.mkv *.mp3 *.flac *.*)"
+            self, "打开媒体文件", "", "媒体文件 (*.mp4 *.mkv *.mp3 *.flac *.*)"
         )
         if file_path:
             self._open_media(Path(file_path))
 
+    def on_play_pause_clicked(self) -> None:
+        self._player.toggle_pause()
+        self._update_play_pause_text()
+
+    def on_volume_changed(self, value: int) -> None:
+        self._player.set_volume(value)
+
     def _open_media(self, path: Path) -> None:
         if not path.exists():
-            QMessageBox.warning(self, "File not found", f"{path} does not exist.")
+            QMessageBox.warning(self, "无法打开文件", f"文件不存在：{path}")
             return
         if not self._player_attached:
             self._attach_player()
         self._player.open_file(path)
-        self._status_label.setText(f"Playing: {path.name}")
+        self._status_label.setText(f"正在播放：{path.name}")
+        self._update_play_pause_text()
+
+    def _update_play_pause_text(self) -> None:
+        if self._player.is_paused():
+            self._play_pause_button.setText("播放")
+        else:
+            self._play_pause_button.setText("暂停")
