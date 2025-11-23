@@ -31,7 +31,7 @@ class MpvClient:
     def __init__(self, log: Optional[logging.Logger] = None) -> None:
         self._logger = log or get_logger(__name__)
         self._mpv_module: Optional[ModuleType] = None
-        self._mpv_instance = None
+        self._mpv_instance: object | None = None
         self._event_callbacks: list[Callable[[object], None]] = []
         self._create_instance()
 
@@ -80,24 +80,35 @@ class MpvClient:
         return instance.command(name, *args)
 
     def set_property(self, name: str, value: object) -> None:
-        """设置 mpv 属性。"""
+        """设置 mpv 属性。
+
+        参数 ``name`` 接受 mpv 原生属性名，例如 ``"volume"``、``"time-pos"``。
+        """
 
         instance = self._require_instance()
-        attribute_name = name.replace("-", "_")
+        attr_name = name.replace("-", "_")
+        self._logger.debug("set_property %s=%r (attr=%s)", name, value, attr_name)
         try:
-            instance.command("set", name, value)
-        except AttributeError:
-            setattr(instance, attribute_name, value)
+            setattr(instance, attr_name, value)
+        except Exception as exc:  # pragma: no cover - 依赖运行时 mpv
+            self._logger.error("Failed to set property %s: %s", name, exc)
+            raise MpvClientError(f"Failed to set property {name!r}") from exc
 
-    def get_property(self, name: str) -> object:
-        """读取 mpv 属性。"""
+    def get_property(self, name: str) -> object | None:
+        """读取 mpv 属性。
+
+        参数 ``name`` 使用 mpv 原生属性名。如果属性不可用或不存在，返回 ``None``。
+        """
 
         instance = self._require_instance()
-        attribute_name = name.replace("-", "_")
+        attr_name = name.replace("-", "_")
         try:
-            return instance.command("get_property", name)
-        except AttributeError:
-            return getattr(instance, attribute_name)
+            return getattr(instance, attr_name)
+        except Exception as exc:  # pragma: no cover - 依赖运行时 mpv
+            self._logger.debug(
+                "Failed to get property %s (attr=%s): %s", name, attr_name, exc
+            )
+            return None
 
     def set_wid(self, window_id: int) -> None:
         """将 mpv 的视频输出绑定到原生窗口句柄。"""
@@ -118,16 +129,13 @@ class MpvClient:
     def set_pause(self, paused: bool) -> None:
         """暂停或恢复播放。"""
 
-        if not self._mpv_instance:
-            raise MpvClientError("mpv is not initialized")
-        self._mpv_instance.pause = paused
+        self.set_property("pause", paused)
 
     def toggle_pause(self) -> None:
         """切换当前的暂停状态。"""
 
-        if not self._mpv_instance:
-            raise MpvClientError("mpv is not initialized")
-        self._mpv_instance.pause = not self._mpv_instance.pause
+        current = bool(self.get_property("pause"))
+        self.set_property("pause", not current)
 
     def observe_property(self, name: str, callback: Callable[[str, object], None]) -> None:
         """注册 mpv 属性观察回调。"""
@@ -167,7 +175,7 @@ class MpvClient:
                     self._logger.exception("Unhandled exception in mpv event callback")
         return event
 
-    def _require_instance(self):
+    def _require_instance(self) -> object:
         if not self._mpv_instance:
             raise MpvClientError("mpv is not initialized")
         return self._mpv_instance
